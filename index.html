@@ -12,7 +12,6 @@
         .blur-text { filter: blur(10px); cursor: pointer; transition: 0.3s; }
         .search-box { border-radius: 20px; border: 2px solid #dee2e6; padding-left: 15px; }
         
-        /* LOADING OVERLAY */
         #loader {
             display: none;
             position: fixed;
@@ -30,23 +29,23 @@
 
 <div id="loader">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <p class="mt-3"><strong>Processing... Please wait</strong></p>
+    <p class="mt-3"><strong>Connecting to Sheets...</strong></p>
 </div>
 
 <div class="container">
     <div class="total-banner text-center">
-        <p class="mb-1 text-uppercase small">Total Outstanding Credit</p>
+        <p class="mb-1 text-uppercase small">Total Outstanding Debt</p>
         <h1 id="totalBalance" class="blur-text">K0.00</h1>
-        <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light mt-2" id="toggleBtn">Show Balance</button>
+        <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light mt-2" id="toggleBtn">Show Total</button>
     </div>
 
     <div class="card p-4">
-        <h5 class="mb-3 text-secondary">New Sale Entry</h5>
+        <h5 class="mb-3 text-secondary">Register New Sale</h5>
         <div class="row g-3">
             <div class="col-md-3"><input type="text" id="name" class="form-control" placeholder="Customer Name"></div>
             <div class="col-md-2"><input type="text" id="room" class="form-control" placeholder="Room #"></div>
-            <div class="col-md-2"><input type="text" id="phone" class="form-control" placeholder="Phone"></div>
-            <div class="col-md-2"><input type="text" id="item" class="form-control" placeholder="Item"></div>
+            <div class="col-md-2"><input type="text" id="phone" class="form-control" placeholder="Phone Number"></div>
+            <div class="col-md-2"><input type="text" id="item" class="form-control" placeholder="Gadget Item"></div>
             <div class="col-md-3">
                 <div class="input-group">
                     <span class="input-group-text">K</span>
@@ -59,13 +58,21 @@
 
     <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="m-0 text-secondary">Credit List</h5>
+            <h5 class="m-0 text-secondary">Active Credit List</h5>
             <input type="text" id="searchInput" class="form-control w-50 search-box" placeholder="🔍 Search name..." onkeyup="filterTable()">
         </div>
         <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr><th>Date</th><th>Customer</th><th>Item</th><th>Balance</th><th>Actions</th></tr>
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Customer / Phone</th>
+                        <th>Item</th>
+                        <th>Cost</th>
+                        <th>Paid</th>
+                        <th>Balance</th>
+                        <th>Actions</th>
+                    </tr>
                 </thead>
                 <tbody id="dataTable"></tbody>
             </table>
@@ -74,6 +81,7 @@
 </div>
 
 <script>
+    // --- REPLACE THESE ---
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwP0C5AqfBLOM-r6P4zI_nuj1LSAB18uivdb1Dv-2Vy5xZS-MGt9TDtaN1k92SIgTRFvw/exec";
     const MASTER_PASSWORD = "shamenda@1131";
 
@@ -92,33 +100,37 @@
         const btn = document.getElementById('toggleBtn');
         if (bal.classList.contains('blur-text')) {
             bal.classList.remove('blur-text');
-            btn.innerText = "Hide Balance";
+            btn.innerText = "Hide Total";
         } else {
             bal.classList.add('blur-text');
-            btn.innerText = "Show Balance";
+            btn.innerText = "Show Total";
         }
     }
 
     async function loadData() {
         toggleLoader(true);
-        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'read'}) });
-        const data = await res.json();
-        let html = ""; let total = 0;
-        data.forEach(row => {
-            total += parseFloat(row[7]);
-            html += `<tr>
-                <td><small>${row[8] || '-'}</small></td>
-                <td><strong>${row[1]}</strong><br><small>${row[2]}</small></td>
-                <td>${row[4]}</td>
-                <td class="text-danger"><strong>K${row[7]}</strong></td>
-                <td>
-                    <button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="deleteRecord('${row[0]}')">Archive</button>
-                </td>
-            </tr>`;
-        });
-        document.getElementById('dataTable').innerHTML = html;
-        document.getElementById('totalBalance').innerText = "K" + total.toFixed(2);
+        try {
+            const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'read'}) });
+            const data = await res.json();
+            let html = ""; let total = 0;
+            data.forEach(row => {
+                total += parseFloat(row[7]);
+                html += `<tr>
+                    <td><small class="text-muted">${row[8] || '-'}</small></td>
+                    <td><strong>${row[1]}</strong><br><small>${row[2]} | ${row[3]}</small></td>
+                    <td>${row[4]}</td>
+                    <td>K${row[5]}</td>
+                    <td class="text-success">K${row[6]}</td>
+                    <td class="text-danger"><strong>K${row[7]}</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-success mb-1" onclick="makePayment('${row[0]}')">Pay</button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord('${row[0]}')">Archive</button>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('dataTable').innerHTML = html;
+            document.getElementById('totalBalance').innerText = "K" + total.toLocaleString();
+        } catch (e) { alert("Error loading data!"); }
         toggleLoader(false);
     }
 
@@ -138,7 +150,7 @@
 
     async function makePayment(id) {
         const amount = prompt("Enter amount paid:");
-        if (amount) {
+        if (amount && !isNaN(amount)) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id: id, amount: amount}) });
             loadData();
@@ -146,7 +158,7 @@
     }
 
     async function deleteRecord(id) {
-        if (confirm("Archive this record?")) {
+        if (confirm("Move to Archive?")) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id: id}) });
             loadData();
