@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gadget Pro</title>
+    <title>Gadget Pro - Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: #f0f2f5; padding: 20px; font-family: sans-serif; }
@@ -11,219 +11,236 @@
         .total-banner { background: #2c3e50; color: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; position: relative; }
         .blur-text { filter: blur(10px); cursor: pointer; transition: 0.3s; }
         .search-box { border-radius: 20px; border: 2px solid #dee2e6; padding-left: 15px; }
+        .hidden { display: none; }
         
         #loader {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(255,255,255,0.9);
+            z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
         }
 
-        .logout-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-        }
+        .nav-buttons { position: absolute; top: 15px; left: 15px; }
+        .logout-btn { position: absolute; top: 15px; right: 15px; }
     </style>
 </head>
 <body>
 
 <div id="loader">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <p class="mt-3"><strong>Connecting to Sheets...</strong></p>
+    <p class="mt-3"><strong>Processing...</strong></p>
 </div>
 
 <div class="container">
     <div class="total-banner text-center">
-        <button onclick="logout()" class="btn btn-sm btn-danger logout-btn">🔒 Lock System</button>
+        <div class="nav-buttons">
+            <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales</button>
+            <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Inventory/Orders</button>
+        </div>
+        <button onclick="logout()" class="btn btn-sm btn-danger logout-btn">🔒 Lock</button>
         
-        <p class="mb-1 text-uppercase small">Total Outstanding Debt</p>
+        <p class="mb-1 text-uppercase small" id="bannerTitle">Total Outstanding Debt</p>
         <h1 id="totalBalance" class="blur-text">K0.00</h1>
         <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light mt-2" id="toggleBtn">Show Total</button>
     </div>
 
-    <div class="card p-4">
-        <h5 class="mb-3 text-secondary">Register New Sale</h5>
-        <div class="row g-3">
-            <div class="col-md-3"><input type="text" id="name" class="form-control" placeholder="Customer Name"></div>
-            <div class="col-md-2"><input type="text" id="room" class="form-control" placeholder="Room #"></div>
-            <div class="col-md-2"><input type="text" id="phone" class="form-control" placeholder="Phone Number"></div>
-            <div class="col-md-2"><input type="text" id="item" class="form-control" placeholder="Gadget Item"></div>
-            <div class="col-md-3">
-                <div class="input-group">
-                    <span class="input-group-text">K</span>
-                    <input type="number" id="cost" class="form-control" placeholder="Price">
-                    <button onclick="addRecord()" class="btn btn-primary">Save</button>
+    <div id="salesPage">
+        <div class="card p-4">
+            <h5 class="mb-3 text-secondary">Register New Sale</h5>
+            <div class="row g-3">
+                <div class="col-md-3"><input type="text" id="name" class="form-control" placeholder="Customer Name"></div>
+                <div class="col-md-2"><input type="text" id="room" class="form-control" placeholder="Room #"></div>
+                <div class="col-md-2"><input type="text" id="phone" class="form-control" placeholder="Phone Number"></div>
+                <div class="col-md-2">
+                    <select id="itemSelect" class="form-select">
+                        <option value="">Select Item...</option>
+                    </select>
                 </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text">K</span>
+                        <input type="number" id="cost" class="form-control" placeholder="Sale Price">
+                        <button onclick="addRecord()" class="btn btn-primary">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="m-0 text-secondary">Active Credit List</h5>
+                <input type="text" id="searchInput" class="form-control w-50 search-box" placeholder="🔍 Search name..." onkeyup="filterTable()">
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Item</th>
+                            <th>Sale Price</th>
+                            <th>Profit</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable"></tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="m-0 text-secondary">Active Credit List</h5>
-            <input type="text" id="searchInput" class="form-control w-50 search-box" placeholder="🔍 Search name..." onkeyup="filterTable()">
+    <div id="ordersPage" class="hidden">
+        <div class="card p-4 border-warning">
+            <h5 class="mb-3 text-warning">Inventory & Order Prices</h5>
+            <p class="small text-muted">Set the price you paid for items here to calculate profit automatically.</p>
+            <div class="row g-3">
+                <div class="col-md-6"><input type="text" id="invItemName" class="form-control" placeholder="Item Name (e.g. Fleece)"></div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text">K</span>
+                        <input type="number" id="invOrderPrice" class="form-control" placeholder="Order Cost">
+                    </div>
+                </div>
+                <div class="col-md-2"><button onclick="addInventory()" class="btn btn-warning w-100">Add Item</button></div>
+            </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Date</th>
-                        <th>Customer / Phone</th>
-                        <th>Item</th>
-                        <th>Cost</th>
-                        <th>Paid</th>
-                        <th>Balance</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="dataTable"></tbody>
-            </table>
+
+        <div class="card p-4">
+            <h5 class="mb-3 text-secondary">Inventory List</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Order Cost</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTable"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
-<footer class="text-center mt-5 pb-3">
-    <hr>
-    <p class="text-muted small">
-        &copy; 2025 MjCiTy. All Rights Reserved.
-        <br>Built by Joseph Mwaba.
-    </p>
-</footer>
-
 <script>
-    // --- CONFIGURATION ---
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwP0C5AqfBLOM-r6P4zI_nuj1LSAB18uivdb1Dv-2Vy5xZS-MGt9TDtaN1k92SIgTRFvw/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx2FO-YIy1maA_k9o69YmxGtRgrHPhPtOCsJyyZs2TWG2j7dk7NnulUe15aLQpkYviJNg/exec";
     const MASTER_PASSWORD = "shamenda@1421";
+    let inventory = []; // Local cache for calculations
 
-    // --- AUTHENTICATION LOGIC ---
+    // --- AUTH ---
     function checkAuth() {
-        const session = localStorage.getItem("gadgetProAuth");
-        if (session !== MASTER_PASSWORD) {
+        if (localStorage.getItem("gadgetProAuth") !== MASTER_PASSWORD) {
             const auth = prompt("Admin Password:");
-            if (auth === MASTER_PASSWORD) {
-                localStorage.setItem("gadgetProAuth", auth);
-            } else {
-                document.body.innerHTML = `
-                    <div class="container text-center mt-5">
-                        <h2 class='text-danger'>Unauthorized</h2>
-                        <p>Invalid password provided.</p>
-                        <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
-                    </div>`;
-                throw new Error("Authentication Failed");
-            }
+            if (auth === MASTER_PASSWORD) localStorage.setItem("gadgetProAuth", auth);
+            else { document.body.innerHTML = "<h2 class='text-center mt-5'>Unauthorized</h2>"; throw new Error("Exit"); }
         }
     }
-
-    function logout() {
-        if (confirm("Lock the system? You will need to enter the password again.")) {
-            localStorage.removeItem("gadgetProAuth");
-            location.reload();
-        }
-    }
-
-    // Initialize Auth
+    function logout() { localStorage.removeItem("gadgetProAuth"); location.reload(); }
     checkAuth();
 
-    // --- CORE FUNCTIONS ---
-    function toggleLoader(show) {
-        document.getElementById('loader').style.display = show ? 'flex' : 'none';
+    // --- NAVIGATION ---
+    function showPage(page) {
+        document.getElementById('salesPage').classList.toggle('hidden', page !== 'sales');
+        document.getElementById('ordersPage').classList.toggle('hidden', page !== 'orders');
+        document.getElementById('bannerTitle').innerText = (page === 'sales') ? "Total Outstanding Debt" : "Total Inventory Value";
+        loadData();
     }
 
-    function toggleBalance() {
-        const bal = document.getElementById('totalBalance');
-        const btn = document.getElementById('toggleBtn');
-        if (bal.classList.contains('blur-text')) {
-            bal.classList.remove('blur-text');
-            btn.innerText = "Hide Total";
-        } else {
-            bal.classList.add('blur-text');
-            btn.innerText = "Show Total";
-        }
-    }
+    function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
 
+    // --- LOGIC ---
     async function loadData() {
         toggleLoader(true);
         try {
-            const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'read'}) });
-            const data = await res.json();
-            let html = ""; let total = 0;
-            data.forEach(row => {
-                total += parseFloat(row[7]);
-                html += `<tr>
-                    <td><small class="text-muted">${row[8] || '-'}</small></td>
-                    <td><strong>${row[1]}</strong><br><small>${row[2]} | ${row[3]}</small></td>
-                    <td>${row[4]}</td>
-                    <td>K${row[5]}</td>
-                    <td class="text-success">K${row[6]}</td>
-                    <td class="text-danger"><strong>K${row[7]}</strong></td>
-                    <td>
-                        <button class="btn btn-sm btn-success mb-1" onclick="makePayment('${row[0]}')">Pay</button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord('${row[0]}')">Archive</button>
-                    </td>
-                </tr>`;
-            });
-            document.getElementById('dataTable').innerHTML = html;
-            document.getElementById('totalBalance').innerText = "K" + total.toLocaleString();
-        } catch (e) { alert("Error loading data!"); }
+            const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'readAll'}) });
+            const data = await res.json(); 
+            // Expecting data: { sales: [], inventory: [] } from your Sheets Script
+            
+            inventory = data.inventory || [];
+            renderInventory(data.inventory);
+            renderSales(data.sales);
+            updateDropdown(data.inventory);
+        } catch (e) { console.error(e); }
         toggleLoader(false);
     }
 
-    async function addRecord() {
-        const name = document.getElementById('name').value;
-        if (!name) return alert("Please enter a name");
+    function renderInventory(items) {
+        let html = ""; let totalInv = 0;
+        items.forEach(item => {
+            totalInv += parseFloat(item.cost);
+            html += `<tr><td>${item.name}</td><td>K${item.cost}</td>
+            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteInv('${item.name}')">Delete</button></td></tr>`;
+        });
+        document.getElementById('inventoryTable').innerHTML = html;
+        if(document.getElementById('ordersPage').offsetParent !== null) {
+            document.getElementById('totalBalance').innerText = "K" + totalInv.toLocaleString();
+        }
+    }
 
+    function renderSales(sales) {
+        let html = ""; let totalDebt = 0;
+        sales.forEach(row => {
+            // Profit calculation: Sale Price - Order Price
+            const invItem = inventory.find(i => i.name === row[4]);
+            const orderPrice = invItem ? parseFloat(invItem.cost) : 0;
+            const profit = parseFloat(row[5]) - orderPrice;
+            
+            totalDebt += parseFloat(row[7]);
+            html += `<tr>
+                <td><small>${row[8] || '-'}</small></td>
+                <td><strong>${row[1]}</strong></td>
+                <td>${row[4]}</td>
+                <td>K${row[5]}</td>
+                <td class="text-primary">K${profit}</td>
+                <td class="text-danger"><strong>K${row[7]}</strong></td>
+                <td><button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button></td>
+            </tr>`;
+        });
+        document.getElementById('dataTable').innerHTML = html;
+        if(document.getElementById('salesPage').offsetParent !== null) {
+            document.getElementById('totalBalance').innerText = "K" + totalDebt.toLocaleString();
+        }
+    }
+
+    function updateDropdown(items) {
+        const select = document.getElementById('itemSelect');
+        select.innerHTML = '<option value="">Select Item...</option>';
+        items.forEach(i => {
+            select.innerHTML += `<option value="${i.name}">${i.name} (Cost: K${i.cost})</option>`;
+        });
+    }
+
+    async function addInventory() {
+        const name = document.getElementById('invItemName').value;
+        const cost = document.getElementById('invOrderPrice').value;
+        if(!name || !cost) return alert("Fill all fields");
+        toggleLoader(true);
+        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addInventory', name, cost}) });
+        loadData();
+    }
+
+    async function addRecord() {
         toggleLoader(true);
         const payload = {
             action: 'addRow',
-            name: name,
+            name: document.getElementById('name').value,
             room: document.getElementById('room').value,
             phone: document.getElementById('phone').value,
-            item: document.getElementById('item').value,
+            item: document.getElementById('itemSelect').value,
             cost: document.getElementById('cost').value
         };
-        try {
-            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-            // Because we use localStorage, location.reload() won't ask for the password again!
-            location.reload();
-        } catch (e) {
-            alert("Error saving record.");
-            toggleLoader(false);
-        }
+        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+        location.reload();
     }
 
-    async function makePayment(id) {
-        const amount = prompt("Enter amount paid:");
-        if (amount && !isNaN(amount)) {
-            toggleLoader(true);
-            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id: id, amount: amount}) });
-            loadData();
-        }
+    // Standard Helpers
+    function toggleBalance() {
+        const bal = document.getElementById('totalBalance');
+        bal.classList.toggle('blur-text');
+        document.getElementById('toggleBtn').innerText = bal.classList.contains('blur-text') ? "Show Total" : "Hide Total";
     }
 
-    async function deleteRecord(id) {
-        if (confirm("Move to Archive?")) {
-            toggleLoader(true);
-            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id: id}) });
-            loadData();
-        }
-    }
-
-    function filterTable() {
-        let input = document.getElementById("searchInput").value.toLowerCase();
-        let rows = document.getElementById("dataTable").getElementsByTagName("tr");
-        for (let row of rows) {
-            let name = row.getElementsByTagName("td")[1].textContent.toLowerCase();
-            row.style.display = name.includes(input) ? "" : "none";
-        }
-    }
-
-    // Start data fetch
     loadData();
 </script>
 </body>
