@@ -18,6 +18,7 @@
         }
         .nav-buttons { position: absolute; top: 15px; left: 15px; }
         .logout-btn { position: absolute; top: 15px; right: 15px; }
+        .profit-badge { background: #27ae60; color: white; padding: 5px 12px; border-radius: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -34,23 +35,28 @@
             <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Inventory</button>
         </div>
         <button onclick="logout()" class="btn btn-sm btn-danger logout-btn">🔒 Lock</button>
+        
         <p class="mb-1 text-uppercase small" id="bannerTitle">Total Outstanding Debt</p>
         <h1 id="totalBalance" class="blur-text">K0.00</h1>
-        <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light mt-2" id="toggleBtn">Show Total</button>
+        
+        <div class="mt-2">
+            <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light" id="toggleBtn">Show Total</button>
+            <button onclick="showProfitSummary()" class="btn btn-sm btn-success">💰 Total Profit</button>
+        </div>
     </div>
 
     <div id="salesPage">
         <div class="card p-4">
             <h5 class="mb-3 text-secondary">Register New Sale</h5>
             <div class="row g-3">
-                <div class="col-md-3"><input type="text" id="name" class="form-control" placeholder="Customer Name"></div>
+                <div class="col-md-2"><input type="text" id="name" class="form-control" placeholder="Customer Name"></div>
                 <div class="col-md-2"><input type="text" id="room" class="form-control" placeholder="Room #"></div>
                 <div class="col-md-2"><input type="text" id="phone" class="form-control" placeholder="Phone"></div>
-                <div class="col-md-2"><select id="itemSelect" class="form-select"><option value="">Select Item...</option></select></div>
+                <div class="col-md-3"><select id="itemSelect" class="form-select"><option value="">Select Item...</option></select></div>
                 <div class="col-md-3">
                     <div class="input-group">
                         <span class="input-group-text">K</span>
-                        <input type="number" id="cost" class="form-control" placeholder="Sale Price">
+                        <input type="number" id="cost" class="form-control" placeholder="Price">
                         <button onclick="addRecord()" class="btn btn-primary">Save</button>
                     </div>
                 </div>
@@ -65,7 +71,15 @@
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
-                        <tr><th>Date</th><th>Customer</th><th>Item</th><th>Price</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
+                        <tr>
+                            <th>Date</th>
+                            <th>Customer Detail</th>
+                            <th>Item</th>
+                            <th>Price</th>
+                            <th>Profit</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody id="dataTable"></tbody>
                 </table>
@@ -93,15 +107,16 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyiqDXJVg6gHaLb-CVInG6_72-45Yol_m4z7rSxPRoDIyH4j0DsElppR0DnSQkVGDhR1Q/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyiqDXJVg6gHaLb-CVInG6_72-45Yol_m4z7rSxPRoDIyH4j0DsElppR0DnSQkVGDhR1Q/exec"; // Enter your URL here
     const MASTER_PASSWORD = "shamenda@1421";
     let inventory = [];
+    let lastSalesData = [];
 
     function checkAuth() {
         if (localStorage.getItem("gadgetProAuth") !== MASTER_PASSWORD) {
             const auth = prompt("Admin Password:");
             if (auth === MASTER_PASSWORD) localStorage.setItem("gadgetProAuth", auth);
-            else { document.body.innerHTML = "<h2 style='text-align:center;padding-top:50px;'>Unauthorized Access</h2>"; throw new Error(); }
+            else { document.body.innerHTML = "<h2 style='text-align:center;padding-top:50px;'>Unauthorized</h2>"; throw new Error(); }
         }
     }
     function logout() { localStorage.removeItem("gadgetProAuth"); location.reload(); }
@@ -122,10 +137,11 @@
             const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'readAll'}) });
             const data = await res.json();
             inventory = data.inventory || [];
+            lastSalesData = data.sales || [];
             renderInventory(inventory);
-            renderSales(data.sales);
+            renderSales(lastSalesData);
             updateDropdown(inventory);
-        } catch (e) { alert("Data Sync Failed!"); }
+        } catch (e) { console.error(e); }
         toggleLoader(false);
     }
 
@@ -146,11 +162,35 @@
             const costPrice = invItem ? parseFloat(invItem.cost) : 0;
             const profit = parseFloat(row[5]) - costPrice;
             totalDebt += parseFloat(row[7]);
-            html += `<tr><td><small>${row[8]}</small></td><td><strong>${row[1]}</strong></td><td>${row[4]}</td><td>K${row[5]}</td><td class="text-primary">K${profit}</td><td class="text-danger"><strong>K${row[7]}</strong></td>
-            <td><button class="btn btn-sm btn-success me-1" onclick="makePayment('${row[0]}')">Pay</button><button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Delete</button></td></tr>`;
+            
+            html += `<tr>
+                <td><small>${row[8]}</small></td>
+                <td>
+                    <strong>${row[1]}</strong><br>
+                    <small class="text-muted">Rm: ${row[2]} | Ph: ${row[3]}</small>
+                </td>
+                <td>${row[4]}</td>
+                <td>K${row[5]}</td>
+                <td><span class="profit-badge">K${profit}</span></td>
+                <td class="text-danger"><strong>K${row[7]}</strong></td>
+                <td>
+                    <button class="btn btn-sm btn-success me-1" onclick="makePayment('${row[0]}')">Pay</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Delete</button>
+                </td>
+            </tr>`;
         });
         document.getElementById('dataTable').innerHTML = html;
         if (!document.getElementById('salesPage').classList.contains('hidden')) document.getElementById('totalBalance').innerText = "K" + totalDebt.toLocaleString();
+    }
+
+    function showProfitSummary() {
+        let totalProfit = 0;
+        lastSalesData.forEach(row => {
+            const invItem = inventory.find(i => i.name === row[4]);
+            const costPrice = invItem ? parseFloat(invItem.cost) : 0;
+            totalProfit += (parseFloat(row[5]) - costPrice);
+        });
+        alert("Total Accumulated Profit: K" + totalProfit.toLocaleString());
     }
 
     function updateDropdown(items) {
@@ -162,7 +202,7 @@
     async function addInventory() {
         const name = document.getElementById('invItemName').value;
         const cost = document.getElementById('invOrderPrice').value;
-        if (!name || !cost) return alert("Missing Info");
+        if (!name || !cost) return alert("Fill fields");
         toggleLoader(true);
         await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addInventory', name, cost}) });
         document.getElementById('invItemName').value = ""; document.getElementById('invOrderPrice').value = "";
@@ -170,7 +210,7 @@
     }
 
     async function deleteInv(name) {
-        if (confirm("Permanently delete " + name + " from inventory?")) {
+        if (confirm("Delete " + name + "?")) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name: name}) });
             loadData();
@@ -178,20 +218,22 @@
     }
 
     async function addRecord() {
-        if (!document.getElementById('itemSelect').value || !document.getElementById('cost').value) return alert("Select item and price");
         toggleLoader(true);
         const payload = {
             action: 'addRow',
-            name: document.getElementById('name').value, room: document.getElementById('room').value,
-            phone: document.getElementById('phone').value, item: document.getElementById('itemSelect').value, cost: document.getElementById('cost').value
+            name: document.getElementById('name').value, 
+            room: document.getElementById('room').value,
+            phone: document.getElementById('phone').value, 
+            item: document.getElementById('itemSelect').value, 
+            cost: document.getElementById('cost').value
         };
         await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
         location.reload();
     }
 
     async function makePayment(id) {
-        const amt = prompt("Enter payment amount (K):");
-        if (amt && !isNaN(amt)) {
+        const amt = prompt("Amount:");
+        if (amt) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id: id, amount: amt}) });
             loadData();
@@ -199,7 +241,7 @@
     }
 
     async function deleteSale(id) {
-        if (confirm("Delete this sale record?")) {
+        if (confirm("Delete sale?")) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id: id}) });
             loadData();
