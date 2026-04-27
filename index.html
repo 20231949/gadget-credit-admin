@@ -18,21 +18,21 @@
         }
         .nav-buttons { position: absolute; top: 15px; left: 15px; }
         .logout-btn { position: absolute; top: 15px; right: 15px; }
-        .profit-badge { background: #27ae60; color: white; padding: 5px 12px; border-radius: 10px; font-size: 0.9rem; }
+        .profit-badge { background: #27ae60; color: white; padding: 5px 12px; border-radius: 10px; font-size: 0.85rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="loader">
     <div class="spinner-border text-primary" role="status"></div>
-    <p class="mt-3"><strong>Processing...</strong></p>
+    <p class="mt-3"><strong>Syncing with Sheets...</strong></p>
 </div>
 
 <div class="container">
     <div class="total-banner text-center">
         <div class="nav-buttons">
-            <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales</button>
-            <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Inventory</button>
+            <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales Desk</button>
+            <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Inventory Management</button>
         </div>
         <button onclick="logout()" class="btn btn-sm btn-danger logout-btn">🔒 Lock</button>
         
@@ -41,23 +41,23 @@
         
         <div class="mt-2">
             <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light" id="toggleBtn">Show Total</button>
-            <button onclick="showProfitSummary()" class="btn btn-sm btn-success"> Total Profit</button>
+            <button onclick="showProfitSummary()" class="btn btn-sm btn-success">💰 Calculate All Profit</button>
         </div>
     </div>
 
     <div id="salesPage">
         <div class="card p-4">
-            <h5 class="mb-3 text-secondary">Register New Sale</h5>
+            <h5 class="mb-3 text-secondary">New Sale Entry</h5>
             <div class="row g-3">
                 <div class="col-md-2"><input type="text" id="name" class="form-control" placeholder="Customer Name"></div>
-                <div class="col-md-2"><input type="text" id="room" class="form-control" placeholder="Room #"></div>
+                <div class="col-md-1"><input type="text" id="room" class="form-control" placeholder="Room"></div>
                 <div class="col-md-2"><input type="text" id="phone" class="form-control" placeholder="Phone"></div>
-                <div class="col-md-3"><select id="itemSelect" class="form-select"><option value="">Select Item...</option></select></div>
-                <div class="col-md-3">
+                <div class="col-md-3"><select id="itemSelect" class="form-select"><option value="">Choose Item...</option></select></div>
+                <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text">K</span>
-                        <input type="number" id="cost" class="form-control" placeholder="Price">
-                        <button onclick="addRecord()" class="btn btn-primary">Save</button>
+                        <input type="number" id="cost" class="form-control" placeholder="Sales Price">
+                        <button onclick="addRecord()" class="btn btn-primary">Save Sale</button>
                     </div>
                 </div>
             </div>
@@ -65,17 +65,17 @@
 
         <div class="card p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="m-0 text-secondary">Active Credit List</h5>
-                <input type="text" id="searchInput" class="form-control w-50 search-box" placeholder="Search name..." onkeyup="filterTable()">
+                <h5 class="m-0 text-secondary">Active Debtors</h5>
+                <input type="text" id="searchInput" class="form-control w-50 search-box" placeholder="🔍 Search name..." onkeyup="filterTable()">
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
                             <th>Date</th>
-                            <th>Customer Detail</th>
+                            <th>Customer (Room/Phone)</th>
                             <th>Item</th>
-                            <th>Price</th>
+                            <th>Sales Price</th>
                             <th>Profit</th>
                             <th>Balance</th>
                             <th>Actions</th>
@@ -89,17 +89,17 @@
 
     <div id="ordersPage" class="hidden">
         <div class="card p-4 border-warning">
-            <h5 class="mb-3 text-warning">Add Item to Inventory</h5>
+            <h5 class="mb-3 text-warning">Inventory Registration</h5>
             <div class="row g-3">
                 <div class="col-md-6"><input type="text" id="invItemName" class="form-control" placeholder="Item Name"></div>
-                <div class="col-md-4"><input type="number" id="invOrderPrice" class="form-control" placeholder="Order Cost (K)"></div>
-                <div class="col-md-2"><button onclick="addInventory()" class="btn btn-warning w-100">Add</button></div>
+                <div class="col-md-4"><input type="number" id="invOrderPrice" class="form-control" placeholder="Order Price (Cost)"></div>
+                <div class="col-md-2"><button onclick="addInventory()" class="btn btn-warning w-100">Add Item</button></div>
             </div>
         </div>
         <div class="card p-4">
-            <h5 class="mb-3 text-secondary">Stored Inventory List</h5>
+            <h5 class="mb-3 text-secondary">Stock List</h5>
             <table class="table">
-                <thead><tr><th>Item</th><th>Cost</th><th>Action</th></tr></thead>
+                <thead><tr><th>Item Name</th><th>Order Cost</th><th>Action</th></tr></thead>
                 <tbody id="inventoryTable"></tbody>
             </table>
         </div>
@@ -107,21 +107,24 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyiqDXJVg6gHaLb-CVInG6_72-45Yol_m4z7rSxPRoDIyH4j0DsElppR0DnSQkVGDhR1Q/exec"; // Enter your URL here
+    // --- SETTINGS ---
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyiqDXJVg6gHaLb-CVInG6_72-45Yol_m4z7rSxPRoDIyH4j0DsElppR0DnSQkVGDhR1Q/exec"; 
     const MASTER_PASSWORD = "shamenda@1421";
     let inventory = [];
     let lastSalesData = [];
 
+    // --- SECURITY ---
     function checkAuth() {
         if (localStorage.getItem("gadgetProAuth") !== MASTER_PASSWORD) {
             const auth = prompt("Admin Password:");
             if (auth === MASTER_PASSWORD) localStorage.setItem("gadgetProAuth", auth);
-            else { document.body.innerHTML = "<h2 style='text-align:center;padding-top:50px;'>Unauthorized</h2>"; throw new Error(); }
+            else { document.body.innerHTML = "<h2 style='text-align:center;padding-top:100px;'>Unauthorized Access</h2>"; throw new Error(); }
         }
     }
     function logout() { localStorage.removeItem("gadgetProAuth"); location.reload(); }
     checkAuth();
 
+    // --- NAVIGATION ---
     function showPage(page) {
         document.getElementById('salesPage').classList.toggle('hidden', page !== 'sales');
         document.getElementById('ordersPage').classList.toggle('hidden', page !== 'orders');
@@ -131,6 +134,7 @@
 
     function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
 
+    // --- DATA HANDLING ---
     async function loadData() {
         toggleLoader(true);
         try {
@@ -141,7 +145,7 @@
             renderInventory(inventory);
             renderSales(lastSalesData);
             updateDropdown(inventory);
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Sync Error:", e); }
         toggleLoader(false);
     }
 
@@ -159,8 +163,10 @@
         let html = ""; let totalDebt = 0;
         sales.forEach(row => {
             const invItem = inventory.find(i => i.name === row[4]);
-            const costPrice = invItem ? parseFloat(invItem.cost) : 0;
-            const profit = parseFloat(row[5]) - costPrice;
+            const orderPrice = invItem ? parseFloat(invItem.cost) : 0;
+            const salesPrice = parseFloat(row[5]);
+            // Logic: Sales Price - Order Price = Profit
+            const profit = salesPrice - orderPrice;
             totalDebt += parseFloat(row[7]);
             
             html += `<tr>
@@ -170,7 +176,7 @@
                     <small class="text-muted">Rm: ${row[2]} | Ph: ${row[3]}</small>
                 </td>
                 <td>${row[4]}</td>
-                <td>K${row[5]}</td>
+                <td>K${salesPrice}</td>
                 <td><span class="profit-badge">K${profit}</span></td>
                 <td class="text-danger"><strong>K${row[7]}</strong></td>
                 <td>
@@ -187,22 +193,23 @@
         let totalProfit = 0;
         lastSalesData.forEach(row => {
             const invItem = inventory.find(i => i.name === row[4]);
-            const costPrice = invItem ? parseFloat(invItem.cost) : 0;
-            totalProfit += (parseFloat(row[5]) - costPrice);
+            const orderPrice = invItem ? parseFloat(invItem.cost) : 0;
+            totalProfit += (parseFloat(row[5]) - orderPrice);
         });
-        alert("Total Accumulated Profit: K" + totalProfit.toLocaleString());
+        alert("💰 Total Cumulative Profit: K" + totalProfit.toLocaleString());
     }
 
     function updateDropdown(items) {
         const select = document.getElementById('itemSelect');
-        select.innerHTML = '<option value="">Select Item...</option>';
+        select.innerHTML = '<option value="">Choose Item...</option>';
         items.forEach(i => select.innerHTML += `<option value="${i.name}">${i.name}</option>`);
     }
 
+    // --- ACTIONS ---
     async function addInventory() {
         const name = document.getElementById('invItemName').value;
         const cost = document.getElementById('invOrderPrice').value;
-        if (!name || !cost) return alert("Fill fields");
+        if (!name || !cost) return alert("Fill item details");
         toggleLoader(true);
         await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addInventory', name, cost}) });
         document.getElementById('invItemName').value = ""; document.getElementById('invOrderPrice').value = "";
@@ -210,7 +217,7 @@
     }
 
     async function deleteInv(name) {
-        if (confirm("Delete " + name + "?")) {
+        if (confirm("Remove " + name + " from Stock?")) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name: name}) });
             loadData();
@@ -218,6 +225,7 @@
     }
 
     async function addRecord() {
+        if (!document.getElementById('itemSelect').value) return alert("Please select an item");
         toggleLoader(true);
         const payload = {
             action: 'addRow',
@@ -232,8 +240,8 @@
     }
 
     async function makePayment(id) {
-        const amt = prompt("Amount:");
-        if (amt) {
+        const amt = prompt("Amount Paid (K):");
+        if (amt && !isNaN(amt)) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id: id, amount: amt}) });
             loadData();
@@ -241,7 +249,7 @@
     }
 
     async function deleteSale(id) {
-        if (confirm("Delete sale?")) {
+        if (confirm("Archive this sale?")) {
             toggleLoader(true);
             await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id: id}) });
             loadData();
@@ -257,8 +265,8 @@
         let input = document.getElementById("searchInput").value.toLowerCase();
         let rows = document.getElementById("dataTable").getElementsByTagName("tr");
         for (let row of rows) {
-            let name = row.getElementsByTagName("td")[1].textContent.toLowerCase();
-            row.style.display = name.includes(input) ? "" : "none";
+            let text = row.getElementsByTagName("td")[1].textContent.toLowerCase();
+            row.style.display = text.includes(input) ? "" : "none";
         }
     }
 
