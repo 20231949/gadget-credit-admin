@@ -8,7 +8,7 @@
     <style>
         body { background: #f0f2f5; padding: 20px; font-family: sans-serif; }
         .card { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .total-banner { background: #2c3e50; color: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; }
+        .total-banner { background: #2c3e50; color: white; padding: 25px; border-radius: 15px; margin-bottom: 25px; position: relative; }
         .blur-text { filter: blur(10px); cursor: pointer; transition: 0.3s; }
         .search-box { border-radius: 20px; border: 2px solid #dee2e6; padding-left: 15px; }
         
@@ -23,6 +23,12 @@
             align-items: center;
             flex-direction: column;
         }
+
+        .logout-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
     </style>
 </head>
 <body>
@@ -34,6 +40,8 @@
 
 <div class="container">
     <div class="total-banner text-center">
+        <button onclick="logout()" class="btn btn-sm btn-danger logout-btn">🔒 Lock System</button>
+        
         <p class="mb-1 text-uppercase small">Total Outstanding Debt</p>
         <h1 id="totalBalance" class="blur-text">K0.00</h1>
         <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light mt-2" id="toggleBtn">Show Total</button>
@@ -79,6 +87,7 @@
         </div>
     </div>
 </div>
+
 <footer class="text-center mt-5 pb-3">
     <hr>
     <p class="text-muted small">
@@ -88,18 +97,42 @@
 </footer>
 
 <script>
-    // --- REPLACE THESE ---
+    // --- CONFIGURATION ---
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwP0C5AqfBLOM-r6P4zI_nuj1LSAB18uivdb1Dv-2Vy5xZS-MGt9TDtaN1k92SIgTRFvw/exec";
-    const MASTER_PASSWORD = "shamenda@1131";
+    const MASTER_PASSWORD = "shamenda@1421";
 
-    function toggleLoader(show) {
-        document.getElementById('loader').style.display = show ? 'flex' : 'none';
+    // --- AUTHENTICATION LOGIC ---
+    function checkAuth() {
+        const session = localStorage.getItem("gadgetProAuth");
+        if (session !== MASTER_PASSWORD) {
+            const auth = prompt("Admin Password:");
+            if (auth === MASTER_PASSWORD) {
+                localStorage.setItem("gadgetProAuth", auth);
+            } else {
+                document.body.innerHTML = `
+                    <div class="container text-center mt-5">
+                        <h2 class='text-danger'>Unauthorized</h2>
+                        <p>Invalid password provided.</p>
+                        <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+                    </div>`;
+                throw new Error("Authentication Failed");
+            }
+        }
     }
 
-    const auth = prompt("Admin Password:");
-    if (auth !== MASTER_PASSWORD) {
-        document.body.innerHTML = "<h2 class='text-center mt-5'>Unauthorized</h2>";
-        throw new Error("Exit");
+    function logout() {
+        if (confirm("Lock the system? You will need to enter the password again.")) {
+            localStorage.removeItem("gadgetProAuth");
+            location.reload();
+        }
+    }
+
+    // Initialize Auth
+    checkAuth();
+
+    // --- CORE FUNCTIONS ---
+    function toggleLoader(show) {
+        document.getElementById('loader').style.display = show ? 'flex' : 'none';
     }
 
     function toggleBalance() {
@@ -142,17 +175,26 @@
     }
 
     async function addRecord() {
+        const name = document.getElementById('name').value;
+        if (!name) return alert("Please enter a name");
+
         toggleLoader(true);
         const payload = {
             action: 'addRow',
-            name: document.getElementById('name').value,
+            name: name,
             room: document.getElementById('room').value,
             phone: document.getElementById('phone').value,
             item: document.getElementById('item').value,
             cost: document.getElementById('cost').value
         };
-        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-        location.reload();
+        try {
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+            // Because we use localStorage, location.reload() won't ask for the password again!
+            location.reload();
+        } catch (e) {
+            alert("Error saving record.");
+            toggleLoader(false);
+        }
     }
 
     async function makePayment(id) {
@@ -181,6 +223,7 @@
         }
     }
 
+    // Start data fetch
     loadData();
 </script>
 </body>
