@@ -77,7 +77,7 @@
                             <th>Date</th>
                             <th>Customer</th>
                             <th>Item</th>
-                            <th>Sale Price</th>
+                            <th>Price</th>
                             <th>Profit</th>
                             <th>Balance</th>
                             <th>Actions</th>
@@ -91,31 +91,19 @@
 
     <div id="ordersPage" class="hidden">
         <div class="card p-4 border-warning">
-            <h5 class="mb-3 text-warning">Inventory & Order Prices</h5>
-            <p class="small text-muted">Set the price you paid for items here to calculate profit automatically.</p>
+            <h5 class="mb-3 text-warning">Add Inventory Item</h5>
             <div class="row g-3">
                 <div class="col-md-6"><input type="text" id="invItemName" class="form-control" placeholder="Item Name (e.g. Fleece)"></div>
-                <div class="col-md-4">
-                    <div class="input-group">
-                        <span class="input-group-text">K</span>
-                        <input type="number" id="invOrderPrice" class="form-control" placeholder="Order Cost">
-                    </div>
-                </div>
+                <div class="col-md-4"><input type="number" id="invOrderPrice" class="form-control" placeholder="Order Cost (K)"></div>
                 <div class="col-md-2"><button onclick="addInventory()" class="btn btn-warning w-100">Add Item</button></div>
             </div>
         </div>
 
         <div class="card p-4">
-            <h5 class="mb-3 text-secondary">Inventory List</h5>
+            <h5 class="mb-3 text-secondary">Stored Inventory</h5>
             <div class="table-responsive">
                 <table class="table">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Item Name</th>
-                            <th>Order Cost</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
+                    <thead class="table-light"><tr><th>Item Name</th><th>Order Cost</th><th>Action</th></tr></thead>
                     <tbody id="inventoryTable"></tbody>
                 </table>
             </div>
@@ -124,9 +112,9 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx2FO-YIy1maA_k9o69YmxGtRgrHPhPtOCsJyyZs2TWG2j7dk7NnulUe15aLQpkYviJNg/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJFpD4LVNrDTGtt0aHabXP_NMSQnVF-eMepgc_lqIUM-W4HV6OOshDRI6qT6cXVHAInw/exec";
     const MASTER_PASSWORD = "shamenda@1421";
-    let inventory = []; // Local cache for calculations
+    let inventory = [];
 
     // --- AUTH ---
     function checkAuth() {
@@ -139,7 +127,6 @@
     function logout() { localStorage.removeItem("gadgetProAuth"); location.reload(); }
     checkAuth();
 
-    // --- NAVIGATION ---
     function showPage(page) {
         document.getElementById('salesPage').classList.toggle('hidden', page !== 'sales');
         document.getElementById('ordersPage').classList.toggle('hidden', page !== 'orders');
@@ -149,19 +136,16 @@
 
     function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
 
-    // --- LOGIC ---
     async function loadData() {
         toggleLoader(true);
         try {
             const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'readAll'}) });
             const data = await res.json(); 
-            // Expecting data: { sales: [], inventory: [] } from your Sheets Script
-            
             inventory = data.inventory || [];
             renderInventory(data.inventory);
             renderSales(data.sales);
             updateDropdown(data.inventory);
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Load Error:", e); }
         toggleLoader(false);
     }
 
@@ -173,7 +157,7 @@
             <td><button class="btn btn-sm btn-outline-danger" onclick="deleteInv('${item.name}')">Delete</button></td></tr>`;
         });
         document.getElementById('inventoryTable').innerHTML = html;
-        if(document.getElementById('ordersPage').offsetParent !== null) {
+        if(!document.getElementById('ordersPage').classList.contains('hidden')) {
             document.getElementById('totalBalance').innerText = "K" + totalInv.toLocaleString();
         }
     }
@@ -181,12 +165,11 @@
     function renderSales(sales) {
         let html = ""; let totalDebt = 0;
         sales.forEach(row => {
-            // Profit calculation: Sale Price - Order Price
             const invItem = inventory.find(i => i.name === row[4]);
             const orderPrice = invItem ? parseFloat(invItem.cost) : 0;
             const profit = parseFloat(row[5]) - orderPrice;
-            
             totalDebt += parseFloat(row[7]);
+            
             html += `<tr>
                 <td><small>${row[8] || '-'}</small></td>
                 <td><strong>${row[1]}</strong></td>
@@ -194,11 +177,14 @@
                 <td>K${row[5]}</td>
                 <td class="text-primary">K${profit}</td>
                 <td class="text-danger"><strong>K${row[7]}</strong></td>
-                <td><button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button></td>
+                <td>
+                    <button class="btn btn-sm btn-success mb-1" onclick="makePayment('${row[0]}')">Pay</button>
+                    <button class="btn btn-sm btn-outline-danger mb-1" onclick="deleteSale('${row[0]}')">Delete</button>
+                </td>
             </tr>`;
         });
         document.getElementById('dataTable').innerHTML = html;
-        if(document.getElementById('salesPage').offsetParent !== null) {
+        if(!document.getElementById('salesPage').classList.contains('hidden')) {
             document.getElementById('totalBalance').innerText = "K" + totalDebt.toLocaleString();
         }
     }
@@ -206,21 +192,21 @@
     function updateDropdown(items) {
         const select = document.getElementById('itemSelect');
         select.innerHTML = '<option value="">Select Item...</option>';
-        items.forEach(i => {
-            select.innerHTML += `<option value="${i.name}">${i.name} (Cost: K${i.cost})</option>`;
-        });
+        items.forEach(i => { select.innerHTML += `<option value="${i.name}">${i.name}</option>`; });
     }
 
     async function addInventory() {
         const name = document.getElementById('invItemName').value;
         const cost = document.getElementById('invOrderPrice').value;
-        if(!name || !cost) return alert("Fill all fields");
+        if(!name || !cost) return alert("Enter item and cost");
         toggleLoader(true);
         await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addInventory', name, cost}) });
+        document.getElementById('invItemName').value = ""; document.getElementById('invOrderPrice').value = "";
         loadData();
     }
 
     async function addRecord() {
+        if(!document.getElementById('itemSelect').value) return alert("Select an item");
         toggleLoader(true);
         const payload = {
             action: 'addRow',
@@ -234,11 +220,36 @@
         location.reload();
     }
 
-    // Standard Helpers
+    async function makePayment(id) {
+        const amount = prompt("Enter amount paid (K):");
+        if (amount && !isNaN(amount)) {
+            toggleLoader(true);
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id: id.toString(), amount: amount}) });
+            loadData();
+        }
+    }
+
+    async function deleteSale(id) {
+        if (confirm("Permanently delete this sale?")) {
+            toggleLoader(true);
+            await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id: id.toString()}) });
+            loadData();
+        }
+    }
+
     function toggleBalance() {
         const bal = document.getElementById('totalBalance');
         bal.classList.toggle('blur-text');
         document.getElementById('toggleBtn').innerText = bal.classList.contains('blur-text') ? "Show Total" : "Hide Total";
+    }
+
+    function filterTable() {
+        let input = document.getElementById("searchInput").value.toLowerCase();
+        let rows = document.getElementById("dataTable").getElementsByTagName("tr");
+        for (let row of rows) {
+            let name = row.getElementsByTagName("td")[1].textContent.toLowerCase();
+            row.style.display = name.includes(input) ? "" : "none";
+        }
     }
 
     loadData();
