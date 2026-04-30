@@ -40,7 +40,7 @@
         <h1 id="totalBalance" class="blur-text">K0.00</h1>
         <div class="mt-2">
             <button onclick="toggleBalance()" class="btn btn-sm btn-outline-light">Show Figure</button>
-            <button onclick="showProfitSummary()" class="btn btn-sm btn-success"> Total Profit</button>
+            <button onclick="showProfitSummary()" class="btn btn-sm btn-success">Total Profit</button>
         </div>
     </div>
 
@@ -56,7 +56,7 @@
                     <input type="text" id="phone" class="form-control" placeholder="Phone">
                 </div>
                 <div class="col-md-9">
-                    <label class="small fw-bold">Tick Items, Set Sell Price & Quantity</label>
+                    <label class="small fw-bold">Tick Items, Set Sell Price & Qty</label>
                     <div id="itemChecklist" class="item-scroll-area"></div>
                     <div class="text-end mt-3">
                         <button onclick="addRecord()" class="btn btn-primary px-5">Save Selected Items</button>
@@ -91,7 +91,7 @@
             </div>
         </div>
         <div class="card p-4">
-            <h5 class="mb-3 text-secondary">Current Stock Valuation</h5>
+            <h5 class="mb-3 text-secondary">Stock Valuation</h5>
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr><th>Item Name</th><th>Qty</th><th>Unit Cost</th><th>Total Value</th><th>Actions</th></tr>
@@ -103,7 +103,7 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQN1pBdfSCL2nG_hMX8-UHjfvQHYzNWwk-ltoqvo6ylWSf4YCCsmzG3BWf6tReQTC6Zw/exec"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyFFwmoB_J_f5qrkpyUNchc48ic7AoP0WAsckzMJadm4YFvYilHjTqk-EScg3WOODZcCQ/exec"; 
     const MASTER_PASSWORD = "shamenda@1421";
     let inventory = []; let lastSalesData = []; let currentPage = 'sales';
 
@@ -135,7 +135,7 @@
             renderInventory(inventory);
             renderSales(lastSalesData);
             updateChecklist(inventory);
-        } catch (e) { alert("Server Connection Error."); }
+        } catch (e) { alert("Error connecting to server."); }
         toggleLoader(false);
     }
 
@@ -155,7 +155,7 @@
         const container = document.getElementById('itemChecklist');
         if (items.length === 0) { container.innerHTML = '<p class="text-muted">No stock available.</p>'; return; }
         
-        let html = '<div class="row fw-bold mb-2 small text-secondary"><div class="col-6">Item Name</div><div class="col-3">Sell Price (K)</div><div class="col-3">Qty</div></div>';
+        let html = '<div class="row fw-bold mb-2 small text-secondary"><div class="col-6">Item Name</div><div class="col-3">Sell Price</div><div class="col-3">Qty</div></div>';
         items.forEach((item, idx) => {
             html += `
             <div class="col-12 mb-2">
@@ -164,7 +164,7 @@
                         <input class="form-check-input item-cb" type="checkbox" value="${item.name}" data-cost="${item.cost}" id="cb${idx}">
                         <label class="form-check-label ms-2" for="cb${idx}">${item.name}<br><small class="text-muted">Cost: K${item.cost}</small></label>
                     </div>
-                    <div class="col-3 px-1"><input type="number" class="form-control form-control-sm" placeholder="Sell K" id="p${idx}"></div>
+                    <div class="col-3 px-1"><input type="number" class="form-control form-control-sm" placeholder="K" id="p${idx}"></div>
                     <div class="col-3"><input type="number" class="form-control form-control-sm" value="1" min="1" id="q${idx}"></div>
                 </div>
             </div>`;
@@ -201,7 +201,7 @@
 
     async function addRecord() {
         const name = document.getElementById('name').value;
-        if (!name) { alert("Name required."); return; }
+        if (!name) { alert("Customer name required."); return; }
         const selected = [];
         document.querySelectorAll('.item-cb').forEach((cb, idx) => {
             if (cb.checked) {
@@ -210,13 +210,15 @@
                 selected.push({ name: cb.value, cost: cb.getAttribute('data-cost'), sellingPrice: sPrice, qty: document.getElementById(`q${idx}`).value });
             }
         });
-        if (selected.length === 0) { alert("Tick an item."); return; }
+        if (selected.length === 0) { alert("Please tick an item."); return; }
         toggleLoader(true);
         await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({
             action: 'addRow', name, items: selected,
             room: document.getElementById('room').value, phone: document.getElementById('phone').value 
         })});
-        document.getElementById('name').value = ""; document.getElementById('room').value = ""; document.getElementById('phone').value = "";
+        document.getElementById('name').value = ""; 
+        document.getElementById('room').value = ""; 
+        document.getElementById('phone').value = "";
         await loadData();
     }
 
@@ -243,8 +245,8 @@
         if(amt) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id, amount: amt})}); await loadData(); }
     }
 
-    async function deleteSale(id) { if(confirm("Delete Sale?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id})}); await loadData(); } }
-    async function deleteInv(name) { if(confirm("Delete Stock?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name})}); await loadData(); } }
+    async function deleteSale(id) { if(confirm("Delete this sale?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id})}); await loadData(); } }
+    async function deleteInv(name) { if(confirm("Delete this stock item?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name})}); await loadData(); } }
     function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
     function toggleBalance() { document.getElementById('totalBalance').classList.toggle('blur-text'); }
     function showProfitSummary() {
@@ -255,7 +257,7 @@
             const inv = inventory.find(i => i.name === base);
             t += (parseFloat(row[5]) - (inv ? parseFloat(inv.cost) * qty : 0));
         });
-        alert("Cumulative Profit: K" + t.toLocaleString());
+        alert("Total Cumulative Profit: K" + t.toLocaleString());
     }
     loadData();
 </script>
