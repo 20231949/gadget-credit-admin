@@ -17,6 +17,7 @@
         }
         .nav-buttons { position: absolute; top: 15px; left: 15px; }
         .logout-btn { position: absolute; top: 15px; right: 15px; }
+        .item-scroll-area { max-height: 250px; overflow-y: auto; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; background: #fff; }
         .search-box { border-radius: 50px; padding: 12px 25px; border: 2px solid #ddd; margin-bottom: 15px; }
         .profit-label { font-weight: bold; color: #27ae60; background: #e8f5e9; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; }
     </style>
@@ -29,11 +30,11 @@
 </div>
 
 <div class="container">
-    <!-- BANNER SECTION -->
+    <!-- TOP BANNER -->
     <div class="total-banner text-center">
         <div class="nav-buttons">
             <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales Desk</button>
-            <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Inventory Desk</button>
+            <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Inventory</button>
         </div>
         <button onclick="logout()" class="btn btn-sm btn-danger logout-btn">🔒 Lock</button>
         <p class="mb-1 text-uppercase small" id="bannerTitle">Total Outstanding Debt</p>
@@ -47,30 +48,33 @@
     <!-- SALES PAGE -->
     <div id="salesPage">
         <div class="card p-4">
-            <h5 class="mb-3 text-secondary">Record a Sale</h5>
+            <h5 class="mb-3 text-secondary">New Sale Session</h5>
             <div class="row g-3">
-                <div class="col-md-2"><input type="text" id="name" class="form-control" placeholder="Customer"></div>
-                <div class="col-md-1"><input type="text" id="room" class="form-control" placeholder="Rm"></div>
-                <div class="col-md-2"><input type="text" id="phone" class="form-control" placeholder="Phone"></div>
-                <div class="col-md-3"><select id="itemSelect" class="form-select"><option value="">Select Item...</option></select></div>
-                <div class="col-md-1"><input type="number" id="qty" class="form-control" placeholder="Qty" value="1"></div>
                 <div class="col-md-3">
-                    <div class="input-group">
-                        <span class="input-group-text">K</span>
-                        <input type="number" id="cost" class="form-control" placeholder="Price">
-                        <button onclick="addRecord()" class="btn btn-primary">Save</button>
+                    <label class="small fw-bold">Customer Info</label>
+                    <input type="text" id="name" class="form-control mb-2" placeholder="Name">
+                    <input type="text" id="room" class="form-control mb-2" placeholder="Room">
+                    <input type="text" id="phone" class="form-control" placeholder="Phone">
+                </div>
+                <div class="col-md-9">
+                    <label class="small fw-bold">Tick Items & Set Quantities</label>
+                    <div id="itemChecklist" class="item-scroll-area">
+                        <!-- Inventory Checklist Injected Here -->
+                    </div>
+                    <div class="text-end mt-3">
+                        <button onclick="addRecord()" class="btn btn-primary px-5">Save Selected Items</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <input type="text" id="searchInput" class="form-control search-box w-100" placeholder="🔍 Search sales by name, room, or product..." onkeyup="filterSales()">
+        <input type="text" id="searchInput" class="form-control search-box w-100" placeholder="🔍 Search sales history..." onkeyup="filterSales()">
 
         <div class="card p-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
-                        <tr><th>Date</th><th>Customer</th><th>Item</th><th>Total</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
+                        <tr><th>Date</th><th>Customer</th><th>Item(s)</th><th>Total</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="dataTable"></tbody>
                 </table>
@@ -84,7 +88,7 @@
             <h5 class="mb-3 text-warning">Inventory Entry</h5>
             <div class="row g-3">
                 <div class="col-md-4"><input type="text" id="invItemName" class="form-control" placeholder="Item Name"></div>
-                <div class="col-md-3"><input type="number" id="invOrderPrice" class="form-control" placeholder="Order Price (K)"></div>
+                <div class="col-md-3"><input type="number" id="invOrderPrice" class="form-control" placeholder="Unit Cost (K)"></div>
                 <div class="col-md-2"><input type="number" id="invQty" class="form-control" placeholder="Qty" value="1"></div>
                 <div class="col-md-3"><button onclick="addInventory()" class="btn btn-warning w-100">Add to Stock</button></div>
             </div>
@@ -102,7 +106,7 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzbz-paDD496y8eC9Fwk-f-eYJCvwi8n9GZjGCdawXWmbvU6pQ3O_5X6kXV0kbsqlraQg/exec"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyKLF0t9pfBYlwZDaP--8KCNpgI_fL63vrVjAi1qGzhZwbvb7PHGU9NahDMgn5Tp30pkQ/exec"; 
     const MASTER_PASSWORD = "shamenda@1421";
     let inventory = []; let lastSalesData = []; let currentPage = 'sales';
 
@@ -110,7 +114,7 @@
         if (localStorage.getItem("gadgetProAuth") !== MASTER_PASSWORD) {
             const auth = prompt("Admin Password:");
             if (auth === MASTER_PASSWORD) localStorage.setItem("gadgetProAuth", auth);
-            else { document.body.innerHTML = "Unauthorized"; throw new Error(); }
+            else { document.body.innerHTML = "Unauthorized Access"; throw new Error(); }
         }
     }
     function logout() { localStorage.removeItem("gadgetProAuth"); location.reload(); }
@@ -133,8 +137,8 @@
             lastSalesData = data.sales || [];
             renderInventory(inventory);
             renderSales(lastSalesData);
-            updateDropdown(inventory);
-        } catch (e) { alert("Error connecting to server."); }
+            updateChecklist(inventory);
+        } catch (e) { alert("Server Error. Check your URL."); }
         toggleLoader(false);
     }
 
@@ -144,7 +148,7 @@
             const rowTotal = (parseFloat(i.cost) || 0) * (parseFloat(i.qty) || 0);
             grandTotal += rowTotal;
             html += `<tr><td><strong>${i.name}</strong></td><td>${i.qty}</td><td>K${i.cost}</td><td><strong>K${rowTotal.toLocaleString()}</strong></td>
-            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteInv('${i.name}')">Delete Stock</button></td></tr>`;
+            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteInv('${i.name}')">Delete</button></td></tr>`;
         });
         document.getElementById('inventoryTable').innerHTML = html;
         if (currentPage === 'orders') document.getElementById('totalBalance').innerText = "K" + grandTotal.toLocaleString();
@@ -157,7 +161,6 @@
             const invItem = inventory.find(i => i.name === baseItemName);
             const profit = (parseFloat(row[5]) || 0) - (invItem ? parseFloat(invItem.cost) : 0);
             totalDebt += (parseFloat(row[7]) || 0);
-            
             html += `<tr>
                 <td><small>${row[8]}</small></td>
                 <td><strong>${row[1]}</strong><br><small>Rm: ${row[2]}</small></td>
@@ -166,8 +169,8 @@
                 <td><span class="profit-label">K${profit.toFixed(2)}</span></td>
                 <td class="text-danger"><strong>K${parseFloat(row[7]).toFixed(2)}</strong></td>
                 <td>
-                    <button class="btn btn-sm btn-success me-1" onclick="makePayment('${row[0]}')">Make Payment</button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Delete Sale</button>
+                    <button class="btn btn-sm btn-success me-1" onclick="makePayment('${row[0]}')">Pay</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Del</button>
                 </td>
             </tr>`;
         });
@@ -175,26 +178,47 @@
         if (currentPage === 'sales') document.getElementById('totalBalance').innerText = "K" + totalDebt.toLocaleString();
     }
 
-    function filterSales() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll("#dataTable tr");
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(query) ? "" : "none";
+    function updateChecklist(items) {
+        const container = document.getElementById('itemChecklist');
+        if (items.length === 0) { container.innerHTML = '<p class="text-muted">No stock available.</p>'; return; }
+        let html = '<div class="row">';
+        items.forEach((item, idx) => {
+            html += `
+            <div class="col-md-6 mb-2">
+                <div class="d-flex align-items-center border-bottom pb-2">
+                    <input class="form-check-input item-cb" type="checkbox" value="${item.name}" data-cost="${item.cost}" id="cb${idx}">
+                    <label class="form-check-label ms-2 flex-grow-1" for="cb${idx}">${item.name}</label>
+                    <input type="number" class="form-control form-control-sm item-qty" style="width:60px" value="1" min="1" id="q${idx}">
+                </div>
+            </div>`;
         });
+        container.innerHTML = html + '</div>';
     }
 
     async function addRecord() {
-        const item = document.getElementById('itemSelect').value;
-        const cost = document.getElementById('cost').value;
-        const qty = document.getElementById('qty').value;
-        if(!item || !cost) return;
+        const name = document.getElementById('name').value;
+        if (!name) { alert("Customer Name is required."); return; }
+        const selected = [];
+        document.querySelectorAll('.item-cb').forEach((cb, idx) => {
+            if (cb.checked) {
+                selected.push({ name: cb.value, cost: cb.getAttribute('data-cost'), qty: document.getElementById(`q${idx}`).value });
+            }
+        });
+        if (selected.length === 0) { alert("Tick at least one item."); return; }
         toggleLoader(true);
         await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({
-            action: 'addRow', item, cost, qty, 
-            name: document.getElementById('name').value, room: document.getElementById('room').value, phone: document.getElementById('phone').value 
+            action: 'addRow', name, items: selected,
+            room: document.getElementById('room').value, phone: document.getElementById('phone').value 
         })});
-        document.getElementById('name').value = ""; document.getElementById('cost').value = ""; document.getElementById('qty').value = "1";
+        document.getElementById('name').value = ""; document.getElementById('room').value = ""; document.getElementById('phone').value = "";
         await loadData();
+    }
+
+    function filterSales() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        document.querySelectorAll("#dataTable tr").forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
+        });
     }
 
     async function addInventory() {
@@ -209,13 +233,12 @@
     }
 
     async function makePayment(id) {
-        const amt = prompt("Enter Amount (K):");
+        const amt = prompt("Amount Paid (K):");
         if(amt) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id, amount: amt})}); await loadData(); }
     }
 
-    async function deleteSale(id) { if(confirm("Delete Sale?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id})}); await loadData(); } }
-    async function deleteInv(name) { if(confirm("Delete Item?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name})}); await loadData(); } }
-    
+    async function deleteSale(id) { if(confirm("Delete Record?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id})}); await loadData(); } }
+    async function deleteInv(name) { if(confirm("Delete Stock?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name})}); await loadData(); } }
     function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
     function toggleBalance() { document.getElementById('totalBalance').classList.toggle('blur-text'); }
     function showProfitSummary() {
@@ -225,11 +248,7 @@
             const invItem = inventory.find(i => i.name === baseItemName);
             total += (parseFloat(row[5]) - (invItem ? parseFloat(invItem.cost) : 0));
         });
-        alert("Cumulative Profit: K" + total.toLocaleString());
-    }
-    function updateDropdown(items) {
-        const s = document.getElementById('itemSelect'); s.innerHTML = '<option value="">Select Item...</option>';
-        items.forEach(i => s.innerHTML += `<option value="${i.name}">${i.name}</option>`);
+        alert(" Total Profit: K" + total.toLocaleString());
     }
     loadData();
 </script>
