@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gadget Pro Business Suite</title>
+    <title>Gadget Pro Suite</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: #f4f7f6; padding: 20px; font-family: 'Segoe UI', sans-serif; }
@@ -21,22 +21,20 @@
 </head>
 <body>
 
-<div id="loader">
-    <div class="spinner-border text-primary" role="status"></div>
-    <p class="mt-3"><strong>Processing...</strong></p>
-</div>
+<div id="loader"><div class="spinner-border text-primary"></div><p class="mt-2 fw-bold">Processing...</p></div>
 
 <div class="container">
+    <!-- Header Banner -->
     <div class="total-banner text-center">
         <div class="position-absolute top-0 start-0 m-3">
-            <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales</button>
-            <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Stock</button>
+            <button onclick="showPage('sales')" class="btn btn-sm btn-light shadow-sm">🛒 Sales Desk</button>
+            <button onclick="showPage('orders')" class="btn btn-sm btn-warning shadow-sm">📦 Stock Desk</button>
         </div>
         <button onclick="logout()" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3">Lock</button>
         <p class="mb-1 text-uppercase small" id="bannerTitle">Total Outstanding Debt</p>
         <h1 id="totalBalance" class="blur-text" onclick="this.classList.toggle('blur-text')">K0.00</h1>
         <div class="mt-2">
-            <button onclick="showProfitSummary()" class="btn btn-sm btn-success">Total Profit</button>
+            <button onclick="showProfitSummary()" class="btn btn-sm btn-success"> Profit Report</button>
         </div>
     </div>
 
@@ -47,7 +45,7 @@
                 <div class="col-md-4">
                     <input type="text" id="name" class="form-control mb-2" placeholder="Customer Name">
                     <input type="text" id="room" class="form-control mb-2" placeholder="Room/ID">
-                    <input type="text" id="phone" class="form-control" placeholder="Phone Number">
+                    <input type="text" id="phone" class="form-control" placeholder="Phone">
                 </div>
                 <div class="col-md-8">
                     <div id="itemChecklist" class="item-scroll-area"></div>
@@ -55,14 +53,12 @@
                 </div>
             </div>
         </div>
-
-        <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search sales history..." onkeyup="filterSales()">
-
+        <input type="text" id="searchInput" class="form-control mb-3" placeholder="🔍 Search records..." onkeyup="filterSales()">
         <div class="card p-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
-                        <tr><th>Date</th><th>Customer</th><th>Item(s)</th><th>Total</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
+                        <tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="dataTable"></tbody>
                 </table>
@@ -73,16 +69,17 @@
     <!-- INVENTORY PAGE -->
     <div id="ordersPage" class="hidden">
         <div class="card p-4 border-warning">
+            <h5 class="text-warning mb-3">Register New Stock</h5>
             <div class="row g-3">
                 <div class="col-md-4"><input type="text" id="invItemName" class="form-control" placeholder="Item Name"></div>
-                <div class="col-md-3"><input type="number" id="invOrderPrice" class="form-control" placeholder="Cost (K)"></div>
+                <div class="col-md-3"><input type="number" id="invOrderPrice" class="form-control" placeholder="Unit Cost (K)"></div>
                 <div class="col-md-2"><input type="number" id="invQty" class="form-control" value="1"></div>
-                <div class="col-md-3"><button onclick="addInventory()" class="btn btn-warning w-100">Add Stock</button></div>
+                <div class="col-md-3"><button onclick="addInventory()" class="btn btn-warning w-100">Add to Stock</button></div>
             </div>
         </div>
         <div class="card p-4">
             <table class="table table-hover">
-                <thead><tr><th>Item Name</th><th>Qty</th><th>Cost</th><th>Value</th><th>Actions</th></tr></thead>
+                <thead class="table-light"><tr><th>Item</th><th>Qty</th><th>Cost</th><th>Total Value</th><th>Action</th></tr></thead>
                 <tbody id="inventoryTable"></tbody>
             </table>
         </div>
@@ -90,9 +87,9 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzJi5skFQPJ1GkHLjt8boDzNoO7IqV6iRXNO_Wh2pyHKpQI8IFlAT5kw7u3gXcsYWH2zw/exec"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxSVO4CwXlgmxfMGKjTJISeqqTvyraqK7tsVhjYnk3jmv0I86eKhFllcLNM4WTwFXr-VA/exec"; 
     const MASTER_PASSWORD = "shamenda@1421";
-    let inventory = []; let lastSalesData = [];
+    let inventory = []; let lastSalesData = []; let currentPage = 'sales';
 
     function checkAuth() {
         if (localStorage.getItem("gadgetProAuth") !== MASTER_PASSWORD) {
@@ -105,41 +102,27 @@
     checkAuth();
 
     function showPage(page) {
+        currentPage = page;
         document.getElementById('salesPage').classList.toggle('hidden', page !== 'sales');
         document.getElementById('ordersPage').classList.toggle('hidden', page !== 'orders');
+        document.getElementById('bannerTitle').innerText = (page === 'sales') ? "Total Outstanding Debt" : "Total Inventory Value";
         loadData();
     }
 
     async function loadData() {
         toggleLoader(true);
-        try {
-            const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'readAll'}) });
-            const data = await res.json();
-            inventory = data.inventory || [];
-            lastSalesData = data.sales || [];
-            render();
-        } catch (e) { alert("Connection Error"); }
+        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'readAll'}) });
+        const data = await res.json();
+        inventory = data.inventory || [];
+        lastSalesData = data.sales || [];
+        render();
         toggleLoader(false);
     }
 
     function render() {
-        // Render Inventory Checklist for Sales
-        let checkHtml = "";
-        inventory.forEach((item, idx) => {
-            checkHtml += `
-            <div class="d-flex align-items-center mb-2 border-bottom pb-2">
-                <div class="flex-grow-1">
-                    <input class="form-check-input item-cb" type="checkbox" value="${item.name}" data-cost="${item.cost}" id="cb${idx}">
-                    <label class="form-check-label ms-2" for="cb${idx}">${item.name}</label>
-                </div>
-                <input type="number" class="form-control form-control-sm w-25 me-1" placeholder="Sell Price" id="p${idx}">
-                <input type="number" class="form-control form-control-sm w-25" value="1" id="q${idx}">
-            </div>`;
-        });
-        document.getElementById('itemChecklist').innerHTML = checkHtml || "No stock available.";
-
-        // Render Sales Table
-        let salesHtml = ""; let totalDebt = 0;
+        // --- 1. DEBT CALCULATION ---
+        let totalDebt = 0;
+        let salesHtml = "";
         lastSalesData.forEach(row => {
             const baseItemName = row[4].split(" (x")[0];
             const qtyPart = row[4].split("(x")[1];
@@ -148,29 +131,38 @@
             const profit = parseFloat(row[5]) - (invItem ? invItem.cost * qty : 0);
             totalDebt += parseFloat(row[7]);
             
-            salesHtml += `<tr>
-                <td>${row[8]}</td>
-                <td><strong>${row[1]}</strong></td>
-                <td>${row[4]}</td>
-                <td>K${parseFloat(row[5]).toFixed(2)}</td>
-                <td><span class="profit-label">K${profit.toFixed(2)}</span></td>
-                <td class="text-danger">K${parseFloat(row[7]).toFixed(2)}</td>
-                <td>
-                    <button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Del</button>
-                </td>
-            </tr>`;
+            salesHtml += `<tr><td>${row[8]}</td><td><strong>${row[1]}</strong></td><td>${row[4]}</td><td>K${parseFloat(row[5]).toFixed(2)}</td>
+            <td><span class="profit-label">K${profit.toFixed(2)}</span></td><td class="text-danger">K${parseFloat(row[7]).toFixed(2)}</td>
+            <td><button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button></td></tr>`;
         });
         document.getElementById('dataTable').innerHTML = salesHtml;
-        document.getElementById('totalBalance').innerText = "K" + totalDebt.toLocaleString();
 
-        // Render Inventory Management Table
+        // --- 2. STOCK VALUATION ---
+        let inventoryValue = 0;
         let invHtml = "";
         inventory.forEach(i => {
-            invHtml += `<tr><td>${i.name}</td><td>${i.qty}</td><td>K${i.cost}</td><td>K${i.qty*i.cost}</td>
-            <td><button class="btn btn-sm btn-link text-danger" onclick="deleteInv('${i.name}')">Remove</button></td></tr>`;
+            const rowVal = i.qty * i.cost;
+            inventoryValue += rowVal;
+            invHtml += `<tr><td>${i.name}</td><td>${i.qty}</td><td>K${i.cost}</td><td><strong>K${rowVal.toLocaleString()}</strong></td>
+            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteInv('${i.name}')">Remove</button></td></tr>`;
         });
         document.getElementById('inventoryTable').innerHTML = invHtml;
+
+        // --- 3. BANNER UPDATE ---
+        const bannerVal = (currentPage === 'sales') ? totalDebt : inventoryValue;
+        document.getElementById('totalBalance').innerText = "K" + bannerVal.toLocaleString();
+
+        // Update Checklist
+        let checkHtml = "";
+        inventory.forEach((item, idx) => {
+            checkHtml += `
+            <div class="d-flex align-items-center mb-2 border-bottom pb-2">
+                <div class="flex-grow-1"><input class="form-check-input item-cb" type="checkbox" value="${item.name}" data-cost="${item.cost}" id="cb${idx}">
+                <label class="ms-2" for="cb${idx}">${item.name}</label></div>
+                <input type="number" class="form-control form-control-sm w-25 me-1" placeholder="Sell K" id="p${idx}">
+                <input type="number" class="form-control form-control-sm w-25" value="1" id="q${idx}"></div>`;
+        });
+        document.getElementById('itemChecklist').innerHTML = checkHtml;
     }
 
     async function addRecord() {
@@ -179,16 +171,13 @@
         document.querySelectorAll('.item-cb').forEach((cb, idx) => {
             if (cb.checked) {
                 const sPrice = document.getElementById(`p${idx}`).value;
-                if (!sPrice) { alert("Enter selling price for " + cb.value); return; }
+                if (!sPrice) { alert("Price missing for " + cb.value); return; }
                 selected.push({ name: cb.value, sellingPrice: sPrice, qty: document.getElementById(`q${idx}`).value });
             }
         });
         if (!name || selected.length === 0) return;
         toggleLoader(true);
-        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({
-            action: 'addRow', name, items: selected,
-            room: document.getElementById('room').value, phone: document.getElementById('phone').value 
-        })});
+        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addRow', name, items: selected, room: document.getElementById('room').value, phone: document.getElementById('phone').value })});
         location.reload();
     }
 
@@ -207,16 +196,11 @@
         if(amt) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id, amount: amt})}); loadData(); }
     }
 
-    async function deleteSale(id) { if(confirm("Delete sale?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id})}); loadData(); } }
-    async function deleteInv(name) { if(confirm("Delete stock?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name})}); loadData(); } }
-    
+    async function deleteInv(name) { if(confirm("Remove?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name})}); loadData(); } }
     function filterSales() {
         const q = document.getElementById('searchInput').value.toLowerCase();
-        document.querySelectorAll("#dataTable tr").forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
-        });
+        document.querySelectorAll("#dataTable tr").forEach(row => row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none");
     }
-
     function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
     function showProfitSummary() {
         let t = 0;
@@ -226,7 +210,7 @@
             const inv = inventory.find(i => i.name === base);
             t += (parseFloat(row[5]) - (inv ? inv.cost * qty : 0));
         });
-        alert("Total Cumulative Profit: K" + t.toLocaleString());
+        alert(" Total Cumulative Profit: K" + t.toLocaleString());
     }
     loadData();
 </script>
