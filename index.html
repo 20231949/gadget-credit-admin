@@ -30,7 +30,7 @@
             <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales Desk</button>
             <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Stock Desk</button>
         </div>
-        <button onclick="logout()" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3">Lock</button>
+        <button onclick="logout()" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3">system Lock</button>
         <p class="mb-1 text-uppercase small" id="bannerTitle">Total Outstanding Debt</p>
         <h1 id="totalBalance" class="blur-text" onclick="this.classList.toggle('blur-text')">K0.00</h1>
         <div class="mt-2"><button onclick="showProfitSummary()" class="btn btn-sm btn-success">Profit Report</button></div>
@@ -41,8 +41,8 @@
         <div class="card p-4">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <input type="text" id="name" class="form-control mb-2" placeholder="Customer Name">
-                    <input type="text" id="room" class="form-control mb-2" placeholder="Room/ID">
+                    <input type="text" id="name" class="form-control mb-2" placeholder="Customer Name" required>
+                    <input type="text" id="room" class="form-control mb-2" placeholder="Room/ID" required>
                     <input type="text" id="phone" class="form-control" placeholder="Phone">
                 </div>
                 <div class="col-md-8">
