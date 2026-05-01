@@ -19,7 +19,10 @@
         .profit-label { font-weight: bold; color: #27ae60; background: #e8f5e9; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; }
         .order-price-tag { font-size: 0.75rem; color: #6c757d; display: block; }
         .details-sub { font-size: 0.8rem; color: #6c757d; display: block; margin-top: 2px; }
-        .item-text { font-size: 0.9rem; color: #495057; }
+        /* Style for vertical items in table */
+        .item-list-vertical { font-size: 0.85rem; line-height: 1.4; color: #495057; }
+        .item-entry { border-bottom: 1px solid #eee; padding: 2px 0; }
+        .item-entry:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -137,13 +140,18 @@
         });
         document.getElementById('inventoryTable').innerHTML = invHtml;
 
-        // --- SALES RENDER (Single Row Logic) ---
+        // --- SALES RENDER ---
         let debt = 0; let salesHtml = "";
         lastSalesData.forEach(row => {
-            // Profit calculation for combined string
             let totalOrderCost = 0;
+            let itemDisplayHtml = ""; // Buffer for vertical list
+            
             const itemParts = row[4].split(", "); 
             itemParts.forEach(part => {
+                // Add to vertical display
+                itemDisplayHtml += `<div class="item-entry">${part}</div>`;
+
+                // Calculate Profit
                 const nameMatch = part.match(/^(.*) \(x/);
                 const qtyMatch = part.match(/\(x(\d+)\)/);
                 if (nameMatch && qtyMatch) {
@@ -164,7 +172,7 @@
                     <span class="details-sub">Room: ${row[2] || 'N/A'}</span>
                     <span class="details-sub">Phone: ${row[3] || 'N/A'}</span>
                 </td>
-                <td class="item-text">${row[4]}</td>
+                <td><div class="item-list-vertical">${itemDisplayHtml}</div></td>
                 <td>K${parseFloat(row[5]).toFixed(2)}</td>
                 <td><span class="profit-label">K${prof.toFixed(2)}</span></td>
                 <td class="text-danger fw-bold">K${parseFloat(row[7]).toFixed(2)}</td>
