@@ -18,6 +18,7 @@
         .item-scroll-area { max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; background: #fff; }
         .profit-label { font-weight: bold; color: #27ae60; background: #e8f5e9; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; }
         .order-price-tag { font-size: 0.75rem; color: #6c757d; display: block; }
+        .details-sub { font-size: 0.8rem; color: #6c757d; display: block; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -30,7 +31,7 @@
             <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales Desk</button>
             <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Stock Desk</button>
         </div>
-        <button onclick="logout()" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3">system Lock</button>
+        <button onclick="logout()" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3">System Lock</button>
         <p class="mb-1 text-uppercase small" id="bannerTitle">Total Outstanding Debt</p>
         <h1 id="totalBalance" class="blur-text" onclick="this.classList.toggle('blur-text')">K0.00</h1>
         <div class="mt-2"><button onclick="showProfitSummary()" class="btn btn-sm btn-success">Profit Report</button></div>
@@ -52,12 +53,20 @@
                 </div>
             </div>
         </div>
-        <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search sales..." onkeyup="filterSales()">
+        <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search sales (Name, Room, or Items)..." onkeyup="filterSales()">
         <div class="card p-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
-                        <tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
+                        <tr>
+                            <th>Date</th>
+                            <th>Customer & Details</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Profit</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody id="dataTable"></tbody>
                 </table>
@@ -135,19 +144,29 @@
             const inv = inventory.find(i => i.name === base);
             const prof = parseFloat(row[5]) - (inv ? inv.cost * qty : 0);
             debt += parseFloat(row[7]);
-            salesHtml += `<tr><td>${row[8]}</td><td><strong>${row[1]}</strong></td><td>${row[4]}</td><td>K${parseFloat(row[5]).toFixed(2)}</td>
-            <td><span class="profit-label">K${prof.toFixed(2)}</span></td><td class="text-danger">K${parseFloat(row[7]).toFixed(2)}</td>
-            <td>
-                <button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Delete</button>
-            </td></tr>`;
+
+            // row[1] = Name, row[2] = Room, row[3] = Phone
+            salesHtml += `<tr>
+                <td>${row[8]}</td>
+                <td>
+                    <strong>${row[1]}</strong>
+                    <span class="details-sub">Room: ${row[2] || 'N/A'}</span>
+                    <span class="details-sub">Phone: ${row[3] || 'N/A'}</span>
+                </td>
+                <td>${row[4]}</td>
+                <td>K${parseFloat(row[5]).toFixed(2)}</td>
+                <td><span class="profit-label">K${prof.toFixed(2)}</span></td>
+                <td class="text-danger">K${parseFloat(row[7]).toFixed(2)}</td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Delete</button>
+                </td>
+            </tr>`;
         });
         document.getElementById('dataTable').innerHTML = salesHtml;
 
-        // Banner Update
         document.getElementById('totalBalance').innerText = "K" + (currentPage === 'sales' ? debt : invVal).toLocaleString();
 
-        // Checklist with Order Price
         let checkHtml = "";
         inventory.forEach((item, idx) => {
             checkHtml += `<div class="d-flex align-items-center mb-2 border-bottom pb-2">
@@ -163,6 +182,10 @@
     }
 
     async function addRecord() {
+        const nameVal = document.getElementById('name').value;
+        const roomVal = document.getElementById('room').value;
+        if (!nameVal || !roomVal) { alert("Customer Name and Room are required."); return; }
+
         const selected = [];
         document.querySelectorAll('.item-cb').forEach((cb, idx) => {
             if (cb.checked) {
@@ -172,10 +195,22 @@
             }
         });
         if (selected.length === 0) return;
+
         toggleLoader(true);
-        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addRow', name: document.getElementById('name').value, items: selected, room: document.getElementById('room').value, phone: document.getElementById('phone').value })});
-        // Clear inputs manually to stay on page
-        document.getElementById('name').value = ""; document.getElementById('room').value = ""; document.getElementById('phone').value = "";
+        await fetch(WEB_APP_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({
+                action: 'addRow', 
+                name: nameVal, 
+                room: roomVal, 
+                phone: document.getElementById('phone').value,
+                items: selected 
+            }) 
+        });
+        
+        document.getElementById('name').value = ""; 
+        document.getElementById('room').value = ""; 
+        document.getElementById('phone').value = "";
         loadData(); 
     }
 
