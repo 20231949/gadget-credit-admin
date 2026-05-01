@@ -3,37 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gadget Pro Suite</title>
+    <title>Gadget Pro Business Suite</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #f0f2f5; padding: 20px; font-family: 'Inter', sans-serif; }
-        .card { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .total-banner { background: #1a2a6c; color: white; padding: 35px; border-radius: 20px; margin-bottom: 25px; position: relative; }
-        .blur-text { filter: blur(8px); cursor: pointer; transition: 0.3s; }
+        body { background: #f4f7f6; padding: 20px; font-family: 'Segoe UI', sans-serif; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .total-banner { background: #1e2a38; color: white; padding: 30px; border-radius: 15px; margin-bottom: 25px; position: relative; }
+        .blur-text { filter: blur(12px); cursor: pointer; transition: 0.3s; }
         .hidden { display: none; }
         #loader {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
+            background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
         }
-        .item-scroll-area { max-height: 350px; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px; padding: 15px; background: white; }
-        .profit-label { color: #2ecc71; font-weight: bold; background: #e8f8f0; padding: 2px 8px; border-radius: 5px; font-size: 0.85rem; }
+        .item-scroll-area { max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; background: #fff; }
+        .profit-label { font-weight: bold; color: #27ae60; background: #e8f5e9; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
-<div id="loader"><div class="spinner-border text-primary"></div><p class="mt-2 fw-bold">Syncing Database...</p></div>
+<div id="loader">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-3"><strong>Processing...</strong></p>
+</div>
 
 <div class="container">
-    <!-- Header Banner -->
     <div class="total-banner text-center">
         <div class="position-absolute top-0 start-0 m-3">
-            <button onclick="showPage('sales')" class="btn btn-sm btn-light shadow-sm">🛒 Sales Desk</button>
-            <button onclick="showPage('inventory')" class="btn btn-sm btn-outline-light shadow-sm">📦 Inventory</button>
+            <button onclick="showPage('sales')" class="btn btn-sm btn-light">🛒 Sales</button>
+            <button onclick="showPage('orders')" class="btn btn-sm btn-warning">📦 Stock</button>
         </div>
-        <button onclick="logout()" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3">Lock System</button>
-        <p class="small text-uppercase tracking-wider opacity-75 mb-1" id="bannerTitle">Outstanding Debt</p>
-        <h1 id="totalDisplay" class="blur-text" onclick="this.classList.toggle('blur-text')">K0.00</h1>
-        <button onclick="showProfitSummary()" class="btn btn-sm btn-success mt-2">Total Profit Analysis</button>
+        <button onclick="logout()" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3">Lock</button>
+        <p class="mb-1 text-uppercase small" id="bannerTitle">Total Outstanding Debt</p>
+        <h1 id="totalBalance" class="blur-text" onclick="this.classList.toggle('blur-text')">K0.00</h1>
+        <div class="mt-2">
+            <button onclick="showProfitSummary()" class="btn btn-sm btn-success">Total Profit</button>
+        </div>
     </div>
 
     <!-- SALES PAGE -->
@@ -41,46 +45,44 @@
         <div class="card p-4">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="fw-bold small">Customer Info</label>
-                    <input type="text" id="custName" class="form-control mb-2" placeholder="Full Name">
-                    <input type="text" id="custRoom" class="form-control mb-2" placeholder="Room/ID">
-                    <input type="text" id="custPhone" class="form-control" placeholder="Phone">
+                    <input type="text" id="name" class="form-control mb-2" placeholder="Customer Name">
+                    <input type="text" id="room" class="form-control mb-2" placeholder="Room/ID">
+                    <input type="text" id="phone" class="form-control" placeholder="Phone Number">
                 </div>
                 <div class="col-md-8">
-                    <label class="fw-bold small">Check Items & Set Price</label>
                     <div id="itemChecklist" class="item-scroll-area"></div>
-                    <button onclick="processSale()" class="btn btn-primary w-100 mt-3 fw-bold">Confirm Transaction</button>
+                    <button onclick="addRecord()" class="btn btn-primary w-100 mt-3">Confirm Sale</button>
                 </div>
             </div>
         </div>
 
+        <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search sales history..." onkeyup="filterSales()">
+
         <div class="card p-4">
-            <input type="text" id="search" class="form-control mb-3" placeholder="🔍 Search records..." onkeyup="filterTable()">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
-                        <tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
+                        <tr><th>Date</th><th>Customer</th><th>Item(s)</th><th>Total</th><th>Profit</th><th>Balance</th><th>Actions</th></tr>
                     </thead>
-                    <tbody id="salesTable"></tbody>
+                    <tbody id="dataTable"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <!-- INVENTORY PAGE -->
-    <div id="inventoryPage" class="hidden">
-        <div class="card p-4">
-            <h5 class="text-primary mb-3">Add New Stock</h5>
-            <div class="row g-2">
-                <div class="col-md-4"><input type="text" id="invName" class="form-control" placeholder="Item Name"></div>
-                <div class="col-md-3"><input type="number" id="invCost" class="form-control" placeholder="Cost (K)"></div>
+    <div id="ordersPage" class="hidden">
+        <div class="card p-4 border-warning">
+            <div class="row g-3">
+                <div class="col-md-4"><input type="text" id="invItemName" class="form-control" placeholder="Item Name"></div>
+                <div class="col-md-3"><input type="number" id="invOrderPrice" class="form-control" placeholder="Cost (K)"></div>
                 <div class="col-md-2"><input type="number" id="invQty" class="form-control" value="1"></div>
-                <div class="col-md-3"><button onclick="addStock()" class="btn btn-primary w-100">Add to Stock</button></div>
+                <div class="col-md-3"><button onclick="addInventory()" class="btn btn-warning w-100">Add Stock</button></div>
             </div>
         </div>
         <div class="card p-4">
-            <table class="table">
-                <thead><tr><th>Item</th><th>Qty</th><th>Unit Cost</th><th>Value</th><th>Action</th></tr></thead>
+            <table class="table table-hover">
+                <thead><tr><th>Item Name</th><th>Qty</th><th>Cost</th><th>Value</th><th>Actions</th></tr></thead>
                 <tbody id="inventoryTable"></tbody>
             </table>
         </div>
@@ -88,139 +90,143 @@
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby8cZc72tOlELcwCrwvRL6jkFW-JvwkegDmLX5Gnl-VvOQutlTqWdslFxpf61YhvqTgew/exec"; 
-    const PASS = "shamenda@1421";
-    let inventory = []; let sales = [];
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzJi5skFQPJ1GkHLjt8boDzNoO7IqV6iRXNO_Wh2pyHKpQI8IFlAT5kw7u3gXcsYWH2zw/exec"; 
+    const MASTER_PASSWORD = "shamenda@1421";
+    let inventory = []; let lastSalesData = [];
 
-    // Security
-    function auth() { if(localStorage.getItem("gadgetAuth") !== PASS) { let p = prompt("Enter Admin Password:"); if(p===PASS) localStorage.setItem("gadgetAuth", p); else location.reload(); } }
-    function logout() { localStorage.removeItem("gadgetAuth"); location.reload(); }
-    auth();
+    function checkAuth() {
+        if (localStorage.getItem("gadgetProAuth") !== MASTER_PASSWORD) {
+            const auth = prompt("Admin Password:");
+            if (auth === MASTER_PASSWORD) localStorage.setItem("gadgetProAuth", auth);
+            else { document.body.innerHTML = "Unauthorized"; throw new Error(); }
+        }
+    }
+    function logout() { localStorage.removeItem("gadgetProAuth"); location.reload(); }
+    checkAuth();
 
-    function showPage(p) {
-        document.getElementById('salesPage').classList.toggle('hidden', p !== 'sales');
-        document.getElementById('inventoryPage').classList.toggle('hidden', p !== 'inventory');
-        document.getElementById('bannerTitle').innerText = (p === 'sales') ? "Outstanding Debt" : "Stock Valuation";
+    function showPage(page) {
+        document.getElementById('salesPage').classList.toggle('hidden', page !== 'sales');
+        document.getElementById('ordersPage').classList.toggle('hidden', page !== 'orders');
         loadData();
     }
 
     async function loadData() {
         toggleLoader(true);
-        const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'readAll'}) });
-        const data = await res.json();
-        inventory = data.inventory; sales = data.sales;
-        render();
+        try {
+            const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'readAll'}) });
+            const data = await res.json();
+            inventory = data.inventory || [];
+            lastSalesData = data.sales || [];
+            render();
+        } catch (e) { alert("Connection Error"); }
         toggleLoader(false);
     }
 
     function render() {
-        // 1. Checklist Rendering (Crucial: Adding Selling Price Input)
+        // Render Inventory Checklist for Sales
         let checkHtml = "";
-        inventory.forEach((item, i) => {
+        inventory.forEach((item, idx) => {
             checkHtml += `
-            <div class="d-flex align-items-center mb-3 border-bottom pb-2">
-                <input type="checkbox" class="sale-cb form-check-input" value="${item.name}" data-cost="${item.cost}" id="c${i}">
-                <label class="ms-2 flex-grow-1" for="c${i}"><strong>${item.name}</strong><br><small class="text-muted">Unit Cost: K${item.cost}</small></label>
-                <div class="w-25 me-1">
-                    <small class="text-muted">Sell Price</small>
-                    <input type="number" class="form-control form-control-sm" placeholder="K" id="p${i}">
+            <div class="d-flex align-items-center mb-2 border-bottom pb-2">
+                <div class="flex-grow-1">
+                    <input class="form-check-input item-cb" type="checkbox" value="${item.name}" data-cost="${item.cost}" id="cb${idx}">
+                    <label class="form-check-label ms-2" for="cb${idx}">${item.name}</label>
                 </div>
-                <div class="w-25">
-                    <small class="text-muted">Qty</small>
-                    <input type="number" class="form-control form-control-sm" value="1" id="q${i}">
-                </div>
+                <input type="number" class="form-control form-control-sm w-25 me-1" placeholder="Sell Price" id="p${idx}">
+                <input type="number" class="form-control form-control-sm w-25" value="1" id="q${idx}">
             </div>`;
         });
-        document.getElementById('itemChecklist').innerHTML = checkHtml;
+        document.getElementById('itemChecklist').innerHTML = checkHtml || "No stock available.";
 
-        // 2. Sales Table with Profit Math
-        let salesHtml = ""; let debt = 0;
-        sales.forEach(row => {
-            const base = row[4].split(" (x")[0];
-            const qty = row[4].split("(x")[1] ? parseFloat(row[4].split("(x")[1]) : 1;
-            const inv = inventory.find(i => i.name === base);
-            const totalProfit = parseFloat(row[5]) - (inv ? inv.cost * qty : 0);
-            debt += parseFloat(row[7]);
+        // Render Sales Table
+        let salesHtml = ""; let totalDebt = 0;
+        lastSalesData.forEach(row => {
+            const baseItemName = row[4].split(" (x")[0];
+            const qtyPart = row[4].split("(x")[1];
+            const qty = qtyPart ? parseFloat(qtyPart) : 1;
+            const invItem = inventory.find(i => i.name === baseItemName);
+            const profit = parseFloat(row[5]) - (invItem ? invItem.cost * qty : 0);
+            totalDebt += parseFloat(row[7]);
+            
             salesHtml += `<tr>
-                <td><small>${row[8]}</small></td>
+                <td>${row[8]}</td>
                 <td><strong>${row[1]}</strong></td>
                 <td>${row[4]}</td>
                 <td>K${parseFloat(row[5]).toFixed(2)}</td>
-                <td><span class="profit-label">K${totalProfit.toFixed(2)}</span></td>
-                <td class="text-danger fw-bold">K${parseFloat(row[7]).toFixed(2)}</td>
+                <td><span class="profit-label">K${profit.toFixed(2)}</span></td>
+                <td class="text-danger">K${parseFloat(row[7]).toFixed(2)}</td>
                 <td>
-                    <button onclick="pay('${row[0]}')" class="btn btn-sm btn-success">Pay</button>
-                    <button onclick="delSale('${row[0]}')" class="btn btn-sm btn-outline-danger ms-1">Del</button>
+                    <button class="btn btn-sm btn-success" onclick="makePayment('${row[0]}')">Pay</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSale('${row[0]}')">Del</button>
                 </td>
             </tr>`;
         });
-        document.getElementById('salesTable').innerHTML = salesHtml;
+        document.getElementById('dataTable').innerHTML = salesHtml;
+        document.getElementById('totalBalance').innerText = "K" + totalDebt.toLocaleString();
 
-        // 3. Inventory Table
-        let invHtml = ""; let invValue = 0;
+        // Render Inventory Management Table
+        let invHtml = "";
         inventory.forEach(i => {
-            invValue += (i.qty * i.cost);
             invHtml += `<tr><td>${i.name}</td><td>${i.qty}</td><td>K${i.cost}</td><td>K${i.qty*i.cost}</td>
-            <td><button onclick="delInv('${i.name}')" class="btn btn-sm btn-outline-danger">Del</button></td></tr>`;
+            <td><button class="btn btn-sm btn-link text-danger" onclick="deleteInv('${i.name}')">Remove</button></td></tr>`;
         });
         document.getElementById('inventoryTable').innerHTML = invHtml;
-
-        const currentView = document.getElementById('salesPage').classList.contains('hidden') ? 'inventory' : 'sales';
-        document.getElementById('totalDisplay').innerText = "K" + (currentView === 'sales' ? debt : invValue).toLocaleString();
     }
 
-    async function processSale() {
-        const name = document.getElementById('custName').value;
-        const items = [];
-        document.querySelectorAll('.sale-cb').forEach((cb, i) => {
-            if(cb.checked) {
-                const sPrice = document.getElementById(`p${i}`).value;
-                if(!sPrice) { alert("Missing price for " + cb.value); throw "Error"; }
-                items.push({ name: cb.value, sellingPrice: sPrice, qty: document.getElementById(`q${i}`).value });
+    async function addRecord() {
+        const name = document.getElementById('name').value;
+        const selected = [];
+        document.querySelectorAll('.item-cb').forEach((cb, idx) => {
+            if (cb.checked) {
+                const sPrice = document.getElementById(`p${idx}`).value;
+                if (!sPrice) { alert("Enter selling price for " + cb.value); return; }
+                selected.push({ name: cb.value, sellingPrice: sPrice, qty: document.getElementById(`q${idx}`).value });
             }
         });
-        if(!name || items.length === 0) { alert("Select items and enter customer name."); return; }
+        if (!name || selected.length === 0) return;
         toggleLoader(true);
         await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({
-            action: 'addRow', name, items, 
-            room: document.getElementById('custRoom').value, phone: document.getElementById('custPhone').value 
-        }) });
+            action: 'addRow', name, items: selected,
+            room: document.getElementById('room').value, phone: document.getElementById('phone').value 
+        })});
         location.reload();
     }
 
-    async function addStock() {
-        const name = document.getElementById('invName').value;
-        const cost = document.getElementById('invCost').value;
+    async function addInventory() {
+        const name = document.getElementById('invItemName').value;
+        const cost = document.getElementById('invOrderPrice').value;
         const qty = document.getElementById('invQty').value;
         if(!name || !cost) return;
         toggleLoader(true);
-        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addInventory', name, cost, qty}) });
+        await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'addInventory', name, cost, qty})});
         location.reload();
     }
 
-    async function pay(id) {
-        const amt = prompt("How much is being paid now (K)?");
-        if(amt) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id, amount: amt}) }); loadData(); }
+    async function makePayment(id) {
+        const amt = prompt("Amount Paid (K):");
+        if(amt) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'update', id, amount: amt})}); loadData(); }
     }
 
-    async function delSale(id) { if(confirm("Delete this record?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id}) }); loadData(); } }
-    async function delInv(name) { if(confirm("Remove this stock?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name}) }); loadData(); } }
-
-    function filterTable() {
-        const q = document.getElementById('search').value.toLowerCase();
-        document.querySelectorAll("#salesTable tr").forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? "" : "none");
+    async function deleteSale(id) { if(confirm("Delete sale?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'delete', id})}); loadData(); } }
+    async function deleteInv(name) { if(confirm("Delete stock?")) { toggleLoader(true); await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({action: 'deleteInventory', name})}); loadData(); } }
+    
+    function filterSales() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        document.querySelectorAll("#dataTable tr").forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
+        });
     }
 
-    function toggleLoader(s) { document.getElementById('loader').style.display = s ? 'flex' : 'none'; }
+    function toggleLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
     function showProfitSummary() {
         let t = 0;
-        sales.forEach(row => {
+        lastSalesData.forEach(row => {
             const base = row[4].split(" (x")[0];
             const qty = row[4].split("(x")[1] ? parseFloat(row[4].split("(x")[1]) : 1;
             const inv = inventory.find(i => i.name === base);
             t += (parseFloat(row[5]) - (inv ? inv.cost * qty : 0));
         });
-        alert("Lifetime Business Profit: K" + t.toLocaleString());
+        alert("Total Cumulative Profit: K" + t.toLocaleString());
     }
     loadData();
 </script>
